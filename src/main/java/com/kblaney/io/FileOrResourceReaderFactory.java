@@ -2,10 +2,12 @@ package com.kblaney.io;
 
 import com.kblaney.assertions.ArgAssert;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import org.apache.commons.io.Charsets;
 
 /**
  * Provides {@code Reader} instances that either read from a specified file in the current working directory or from a
@@ -40,13 +42,15 @@ public final class FileOrResourceReaderFactory implements ReaderFactory
   /** {@inheritDoc} */
   public Reader getInstance() throws IOException
   {
+    final InputStream inputStream;
     if (file.isFile())
     {
-      return new FileReader(file);
+      inputStream = new FileInputStream(file);
     }
     else
     {
-      return new InputStreamReader(getClass().getResourceAsStream(resourceName));
+      inputStream = getClass().getResourceAsStream(resourceName);
     }
+    return new InputStreamReader(inputStream, Charsets.UTF_8);
   }
 }
