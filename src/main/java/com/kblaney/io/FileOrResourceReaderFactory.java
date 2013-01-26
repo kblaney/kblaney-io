@@ -1,5 +1,6 @@
 package com.kblaney.io;
 
+import java.io.FileNotFoundException;
 import com.kblaney.assertions.ArgAssert;
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,44 +14,55 @@ import org.apache.commons.io.Charsets;
  * Provides {@code Reader} instances that either read from a specified file in the current working directory or from a
  * resource file in the default package (if a file with the specified name does not exist in the current working
  * directory).
- * 
- * <p>
- * For example, if this class' constructor is passed a file name of "foo", this class first looks for a file named "foo"
- * in the current working directory. If that file exists, this class' {@link #getInstance} method returns a reader that
- * reads from the file. If no such file exists, this class' {@link #getInstance} method returns a reader that reads from
- * a resource file named "foo" in the default package.
- * </p>
  */
 public final class FileOrResourceReaderFactory implements ReaderFactory
 {
-  private final File file;
-  private final String resourceName;
+  private final String fileName;
 
   /**
-   * Constructs a new instance.
+   * Constructs a new instance that either reads from a specified file in the current working directory or from a
+   * resource file in the default package (if a file with the specified name does not exist in the current working
+   * directory).  Note that in either case, the file's content is assumed to be encoded in UTF-8. 
+   * 
+   * For example, if {@code fileName} is {@code "foo"}, this class first looks for a file named {@code "foo"} in the
+   * current working directory. If that file exists, this class' {@link #getInstance} method returns a reader that reads
+   * from the file. If no such file exists, this class' {@link #getInstance} method returns a reader that reads from a
+   * resource file named {@code foo} in the default package.
    * 
    * @param fileName the file name, which can't be null
    */
   public FileOrResourceReaderFactory(final String fileName)
   {
-    ArgAssert.assertNotNull(fileName, "fileName");
-
-    file = new File(fileName);
-    resourceName = "/" + fileName;
+    this.fileName = ArgAssert.assertNotNull(fileName, "fileName");
   }
 
   /** {@inheritDoc} */
   public Reader getInstance() throws IOException
   {
-    final InputStream inputStream;
+    return new InputStreamReader(getInputStream(), Charsets.UTF_8);
+  }
+
+  private InputStream getInputStream() throws FileNotFoundException
+  {
+    final File file = new File(fileName);
     if (file.isFile())
     {
-      inputStream = new FileInputStream(file);
+      return new FileInputStream(file);
     }
     else
     {
-      inputStream = getClass().getResourceAsStream(resourceName);
+      return getInputStreamFromResource();
     }
-    return new InputStreamReader(inputStream, Charsets.UTF_8);
+  }
+
+  private InputStream getInputStreamFromResource()
+  {
+    final String resourceName = "/" + fileName;
+    final InputStream inputStream = getClass().getResourceAsStream(resourceName);
+    if (inputStream == null)
+    {
+      throw new IllegalArgumentException("Neither file nor resource exists: " + fileName);
+    }
+    return inputStream;
   }
 }
